@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\RolePermissionController;
+use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/', fn () => redirect()->route('admin.permissions.index'))->name('index');
     Route::resource('permissions', PermissionController::class)->except('show');
     Route::resource('roles', RoleController::class)->except('show');
+    Route::get('user-roles', [UserRoleController::class, 'index'])->name('user-roles.index');
+    Route::get('user-roles/create', [UserRoleController::class, 'create'])->name('user-roles.create');
+    Route::post('user-roles', [UserRoleController::class, 'store'])->name('user-roles.store');
+    Route::get('user-roles/{role}/{user}/edit', [UserRoleController::class, 'edit'])->whereNumber(['role', 'user'])->name('user-roles.edit');
+    Route::put('user-roles/{role}/{user}', [UserRoleController::class, 'update'])->whereNumber(['role', 'user'])->name('user-roles.update');
+    Route::delete('user-roles/{role}/{user}', [UserRoleController::class, 'destroy'])->whereNumber(['role', 'user'])->name('user-roles.destroy');
     Route::get('role-permissions', [RolePermissionController::class, 'index'])->name('role-permissions.index');
     Route::get('role-permissions/create', [RolePermissionController::class, 'create'])->name('role-permissions.create');
     Route::post('role-permissions', [RolePermissionController::class, 'store'])->name('role-permissions.store');

@@ -22,7 +22,7 @@ class AdminRouteAccessTest extends TestCase
         $user->assignRole($role);
         $requests = [];
         foreach (Route::getRoutes() as $route) {
-            if (!str_starts_with($route->getName() ?? '', 'admin.')) {
+            if (! str_starts_with($route->getName() ?? '', 'admin.')) {
                 continue;
             }
             $this->assertContains('auth', $route->gatherMiddleware());
@@ -44,5 +44,24 @@ class AdminRouteAccessTest extends TestCase
         $this->assertDatabaseCount('permissions', 1);
         $this->assertDatabaseCount('role_has_permissions', 1);
         $this->assertDatabaseCount('model_has_roles', 1);
+    }
+
+    public function test_menu_has_four_admin_links_in_dashboard_and_both_profile_menus(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole(Role::findOrCreate('admin', 'web'));
+        $this->actingAs($admin);
+        $dashboard = $this->get('/dashboard')->assertOk();
+        $profile = $this->get('/profile')->assertOk();
+        foreach (['permissions', 'roles', 'role-permissions', 'user-roles'] as $resource) {
+            $url = route('admin.'.$resource.'.index');
+            $dashboard->assertSee($url, false);
+            $this->assertSame(2, substr_count($profile->getContent(), 'href="'.$url.'"'));
+        }
+        $this->actingAs(User::factory()->create());
+        $customerDashboard = $this->get('/dashboard')->assertOk();
+        foreach (['permissions', 'roles', 'role-permissions', 'user-roles'] as $resource) {
+            $customerDashboard->assertDontSee(route('admin.'.$resource.'.index'), false);
+        }
     }
 }

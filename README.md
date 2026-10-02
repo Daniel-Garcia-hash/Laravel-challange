@@ -1,66 +1,95 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Laravel Challenge: beheeromgeving
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 12 met Breeze-login en Spatie Permission 6. Vier beheeronderdelen voor bestaande gebruikers.
 
-## About Laravel
+## Starten
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+PHP 8.2 of hoger, Composer en Node.js 22 of hoger zijn nodig. Standaard gebruikt dit nieuwe project SQLite; de tabellen staan in `database/database.sqlite`. Je bestaande game-project en MySQL-database zijn niet aangepast.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Bij een verse download:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```powershell
+composer install
+Copy-Item .env.example .env
+php artisan key:generate
+if (-not (Test-Path database/database.sqlite)) { New-Item -ItemType File -Path database/database.sqlite }
+php artisan migrate
+php artisan db:seed
+npm install
+npm run build
+php artisan serve --port=8001
+```
 
-## Learning Laravel
+Maak een SQLite-bestand alleen als het nog niet bestaat. Voer geen `migrate:fresh` uit op een database die je wilt bewaren.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+In de lokale projectmap zijn installatie, migraties, voorbeeldrollen en frontend al voorbereid. Je kunt daar beginnen met:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+```powershell
+php artisan serve --port=8001
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Open http://127.0.0.1:8001/register en registreer een account met je eigen wachtwoord. Open daarna een tweede terminal in de projectmap en maak dat bestaande account admin:
 
-## Laravel Sponsors
+```powershell
+php artisan app:make-admin jouw-email@example.com
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Gebruik je eigen geregistreerde e-mailadres. Het command maakt geen nieuwe gebruiker en faalt bij een onbekend adres. Na verversen staat Beheer in je menu.
 
-### Premium Partners
+## De vier CRUD's
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+| Onderdeel | Overzicht | Opslag |
+| --- | --- | --- |
+| Permissies | /admin/permissions | permissions: name en automatisch guard_name=web |
+| Rollen | /admin/roles | roles: name en automatisch guard_name=web |
+| Rol-permissies | /admin/role-permissions | role_has_permissions: role_id en permission_id |
+| Gebruiker-rollen | /admin/user-roles | model_has_roles: role_id, model_id en automatisch model_type=App\\Models\\User |
 
-## Contributing
+Elk onderdeel heeft een overzicht, een toevoegformulier, een bewerkformulier en een verwijderactie. Bij de koppelingen heet verwijderen **Ontkoppelen**: de oorspronkelijke rol, permissie en gebruiker blijven bestaan.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+De selecties tonen namen en e-mailadressen; het formulier verstuurt de bijbehorende IDs. Een gebruiker kan meerdere rollen krijgen en een rol meerdere permissies. Een bewerking vervangt alleen het geselecteerde paar.
 
-## Code of Conduct
+## Beveiliging en validatie
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Alle beheer-routes, inclusief opslaan, wijzigen en verwijderen, staan in één routegroep met `auth` en `role:admin`. De middleware-alias staat in `bootstrap/app.php`; User gebruikt Spatie's `HasRoles`.
 
-## Security Vulnerabilities
+Namen zijn verplicht, maximaal 255 tekens en uniek binnen de guard web. Keuzelijsten accepteren alleen bestaande records en rollen/permissies met guard web. Dubbele koppelingen worden geweigerd. Formulieren gebruiken CSRF-beveiliging en tonen fouten en succesmeldingen.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+De koppeltabellen hebben geen apart ID. Daarom bevatten hun bewerk- en verwijderroutes beide IDs. Updates verlopen in een transactie. De Spatie-methoden `givePermissionTo`, `revokePermissionTo`, `assignRole` en `removeRole` houden de rechten en cache bij.
 
-## License
+De vaste beheerrol admin kan niet worden hernoemd of verwijderd. De laatste admin kan zijn adminrol of account niet verwijderen. Geef eerst een andere gebruiker de adminrol.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Het gevolg van een koppeling aantonen
+
+De pagina **Mijn toegang** toont je rollen en permissies. De demonstratiepagina `/rechten/product-aanpassen` gebruikt `permission:product aanpassen`.
+
+1. Registreer een tweede gebruiker.
+2. Geef deze gebruiker via Gebruiker-rollen de rol klant.
+3. Log als die gebruiker in. De beheeromgeving geeft 403 en Product aanpassen is niet beschikbaar.
+4. Log als admin in en koppel product aanpassen aan klant.
+5. Log opnieuw als de tweede gebruiker in. Product aanpassen is nu beschikbaar.
+6. Ontkoppel die permissie als admin en controleer dat de pagina weer wordt geweigerd.
+
+De seeder geeft klant standaard product bekijken, editor bekijken en aanpassen, en admin de vier voorbeeldpermissies. Voer de seeder bij de eerste installatie uit; opnieuw seeden herstelt deze voorbeeldrechten.
+
+## Tests
+
+```powershell
+php artisan test
+php vendor/bin/pint --test
+npm run build
+```
+
+De tests gebruiken een afzonderlijke SQLite-database in het geheugen. Ze controleren CRUD, ongeldige invoer, dubbele koppelingen, andere guards, alle beheer-routes en HTTP-methoden, echte toegang na een koppeling, beide navigatiemenu's en bescherming van de laatste admin.
+
+## Bouwvolgorde en GitHub
+
+De onderdelen zijn één voor één gebouwd en getest: permissies, rollen, rol-permissies, gebruiker-rollen. De geteste tussenversies zijn apart bewaard.
+
+Git schrijven werd in de Codex-omgeving geweigerd, ook na verleende schrijftoegang. Daarom zijn commits en pushes vanuit deze omgeving nog niet uitgevoerd. In de bijgeleverde outputs staan `GitHub-synchroniseren.ps1` en `tussenversies.zip`. Voer het script vanuit je eigen PowerShell uit. Het maakt en pusht vier aparte commits op jouw repository, zonder force-push, en koppelt daarna de lokale projectmap. Controleer het resultaat op GitHub.
+
+## Uitleg voor het eindgesprek
+
+Een rol bundelt permissies. Een gebruiker krijgt rechten door een rol te krijgen die aan permissies is gekoppeld. guard_name web hoort bij browserlogin; model_type vertelt Spatie dat model_id naar een User verwijst. De middleware controleert toegang op de server, zodat ook een rechtstreeks ingevoerde URL of HTTP-request wordt tegengehouden.
+
+Voor de code vind je de vier controllers in `app/Http/Controllers/Admin`, de Blade-views in `resources/views/admin`, de gezamenlijke layout in `resources/views/layouts/admin.blade.php` en de routes in `routes/web.php`.
