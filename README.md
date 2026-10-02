@@ -4,15 +4,16 @@ Laravel 12 met Breeze-login en Spatie Permission 6. Vier beheeronderdelen voor b
 
 ## Starten
 
-PHP 8.2 of hoger, Composer en Node.js 22 of hoger zijn nodig. Standaard gebruikt dit nieuwe project SQLite; de tabellen staan in `database/database.sqlite`. Je bestaande game-project en MySQL-database zijn niet aangepast.
+PHP 8.2 of hoger, Composer en Node.js 22 of hoger zijn nodig. Dit project gebruikt MySQL/MariaDB in XAMPP. De app-database heet `laravel_challange` en is zichtbaar in [phpMyAdmin](http://localhost/phpmyadmin/index.php?route=/database/structure&db=laravel_challange). Start Apache en MySQL in XAMPP. Je bestaande game-project en andere databases zijn niet aangepast.
 
-Bij een verse download:
+De lokale database is al aangemaakt en bevat drie rollen, vier permissies en zeven rol-permissiekoppelingen. De bestaande IDs zijn behouden. Op het moment van omzetten waren er geen geregistreerde gebruikers. Het project en de tests gebruiken nu beide MySQL/MariaDB.
+
+Bij een verse download maak je via phpMyAdmin eerst de lege database `laravel_challange` aan met collation `utf8mb4_unicode_ci`. Voer daarna uit:
 
 ```powershell
 composer install
 Copy-Item .env.example .env
 php artisan key:generate
-if (-not (Test-Path database/database.sqlite)) { New-Item -ItemType File -Path database/database.sqlite }
 php artisan migrate
 php artisan db:seed
 npm install
@@ -20,7 +21,11 @@ npm run build
 php artisan serve --port=8001
 ```
 
-Maak een SQLite-bestand alleen als het nog niet bestaat. Voer geen `migrate:fresh` uit op een database die je wilt bewaren.
+De `.env.example` bevat de MySQL-instellingen voor XAMPP: host `127.0.0.1`, poort `3306`, database `laravel_challange`, gebruiker `root`, leeg wachtwoord. Pas je lokale `.env` aan als jouw MySQL-account andere instellingen gebruikt. Het bestand `.env` wordt niet gecommit.
+
+Voer migraties en de seeder uit bij de eerste installatie. Op de al voorbereide lokale database hoef je die stappen niet te herhalen. `migrate:fresh` is uitsluitend voor een database waarvan de inhoud mag verdwijnen.
+
+Als alternatief voor migreren en seeden is `database/sql/laravel_challange.sql` beschikbaar. Deze SQL-export bevat het schema en de oorspronkelijke voorbeeldrollen/permissies, zonder gebruikers, wachtwoorden of sessies. Importeer hem via phpMyAdmin uitsluitend in een lege database. Gebruik voor een installatie óf de migraties met seeder óf deze export.
 
 In de lokale projectmap zijn installatie, migraties, voorbeeldrollen en frontend al voorbereid. Je kunt daar beginnen met:
 
@@ -74,19 +79,41 @@ De seeder geeft klant standaard product bekijken, editor bekijken en aanpassen, 
 
 ## Tests
 
+Gebruik de afzonderlijke database `laravel_challange_test`, eveneens met `utf8mb4_unicode_ci`. Maak deze via phpMyAdmin aan voordat je de tests voor het eerst draait. Voor een verse download:
+
+```powershell
+Copy-Item .env.testing.example .env.testing
+php artisan key:generate --env=testing
+```
+
+Pas indien nodig het MySQL-account in `.env.testing` aan. Dit lokale bestand wordt niet gecommit. Beide databases en de lokale testinstellingen zijn op jouw laptop al voorbereid.
+
 ```powershell
 php artisan test
 php vendor/bin/pint --test
 npm run build
 ```
 
-De tests gebruiken een afzonderlijke SQLite-database in het geheugen. Ze controleren CRUD, ongeldige invoer, dubbele koppelingen, andere guards, alle beheer-routes en HTTP-methoden, echte toegang na een koppeling, beide navigatiemenu's en bescherming van de laatste admin.
+De tests gebruiken MySQL/MariaDB met uitsluitend `laravel_challange_test`. De testbasis controleert vóór het opnieuw aanmaken van tabellen dat de actieve database werkelijk deze testdatabase is; anders stopt de test. Je app-database wordt daardoor niet gebruikt voor de test-reset. Draai de tests achtereenvolgens, zonder `--parallel`.
+
+De tests controleren CRUD, ongeldige invoer, dubbele koppelingen, andere guards, alle beheer-routes en HTTP-methoden, echte toegang na een koppeling, beide navigatiemenu's en bescherming van de laatste admin.
 
 ## Bouwvolgorde en GitHub
 
 De onderdelen zijn één voor één gebouwd en getest: permissies, rollen, rol-permissies, gebruiker-rollen. De geteste tussenversies zijn apart bewaard.
 
-Git schrijven werd in de Codex-omgeving geweigerd, ook na verleende schrijftoegang. Daarom zijn commits en pushes vanuit deze omgeving nog niet uitgevoerd. In de bijgeleverde outputs staan `GitHub-synchroniseren.ps1` en `tussenversies.zip`. Voer het script vanuit je eigen PowerShell uit. Het maakt en pusht vier aparte commits op jouw repository, zonder force-push, en koppelt daarna de lokale projectmap. Controleer het resultaat op GitHub.
+Alle vier tussenversies zijn afzonderlijk gecommit en naar [GitHub](https://github.com/Daniel-Garcia-hash/Laravel-challange) gepusht:
+
+1. `3860c18` — Bouw CRUD 1: permissies beheren.
+2. `788978a` — Bouw CRUD 2: rollen beheren.
+3. `ac87dd7` — Bouw CRUD 3: permissies aan rollen koppelen.
+4. `4f0323d` — Bouw CRUD 4: rollen aan gebruikers koppelen.
+
+De lokale projectmap is daarna aan deze geschiedenis gekoppeld. De omschakeling naar MySQL/MariaDB staat in een aanvullende commit met de titel `Gebruik MySQL/MariaDB voor app en tests`. Er is geen force-push gebruikt.
+
+Na de omzetting naar MySQL/MariaDB zijn alle 50 tests opnieuw geslaagd (447 assertions). De codecontrole slaagde eveneens. De actieve app-verbinding, overgezette gegevens, phpMyAdmin en registratiepagina zijn gecontroleerd. De frontend-build en browsercontrole van de beheerpagina's waren eerder geslaagd; de schermen zijn bij deze omzetting niet aangepast.
+
+De meegeleverde synchronisatiescripts en tussenversies zijn bewaard als bouwarchief. Voer `GitHub-synchroniseren.ps1` niet opnieuw uit: de vier commits en de GitHub-sync zijn al afgerond. Het lokale herstelscript gebruikte vertrouwen voor alleen deze projectmap per Git-aanroep; het heeft geen globale Git-instellingen gewijzigd.
 
 ## Uitleg voor het eindgesprek
 
